@@ -1,6 +1,8 @@
 package fr.afpa.web_scraper.services;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -24,23 +26,18 @@ public class ScraperService {
 
     public ScraperService(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
-        // getNames();
-        // System.out.println(getDateElements().toString()); 
-        // getDate();
-        System.out.println(getDate().size());
+        // for (String date : getDateString()) {
+        // System.out.println(date);
+        // }
+        // System.out.println(getDateElements().getFirst());
+        getDateTime(getDateElements().getFirst());
+
     }
-
-    // public ScraperService() {
-    // // scrapAll();
-    // // System.out.println(doc.text());
-
-    // }
 
     public Document scrapAll() {
         Connection con = HomeConnection.getInstance();
         try {
-            Document docTry = con.get();
-            return docTry;
+            return con.get();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -84,16 +81,17 @@ public class ScraperService {
 
     /**
      * Gets date row and children elements
+     * 
      * @return Elements
      */
     public Elements getDateElements() {
         return doc.select("div.date-row");
     }
 
-    public ArrayList<String> getDate() {
+    public List<String> getDateString() {
 
-        ArrayList<String> datesList = new ArrayList<>(); 
-        
+        ArrayList<String> datesList = new ArrayList<>();
+
         Elements dateElements = getDateElements();
 
         for (Element element : dateElements) {
@@ -136,7 +134,7 @@ public class ScraperService {
                 case "décembre":
                     dateString.append("12-");
                     break;
-            
+
                 default:
                     break;
             }
@@ -145,16 +143,102 @@ public class ScraperService {
             } else {
                 dateString.append(element.select("span.day-num").text());
             }
-
-            System.out.println(dateString.toString());
+            datesList.add(dateString.toString());
         }
         return datesList;
     }
 
-    // doc.select("span[class='titre']").forEach(System.out::println);
-    // System.out.println(doc.select("span[class='titre']").getFirst());
-    // Elements dates = doc.select("div[class='row date-row']");
-    // Elements concerts = dates.select("div.lieu");
-    // System.out.println(concerts.text());
+    // TODO implement getName
+    // TODO implement getVenuId
+    public boolean createEvent() {
+        Elements dateRows = doc.select("div.date-row");
+        Elements eventRows = doc.select("div.concert-ctn");
+        for (Element dateRow : dateRows) {
+            for (Element eventRow : eventRows) {
+                eventRepository.save(new Event().setDateTime(getDateTime(dateRow)).setName(getName(eventRow))
+                        .setVenueId(getVenueId(venue)));
+            }
+        }
+        return true;
 
+    }
+
+    // TODO implement getDateTime
+    public LocalDateTime getDateTime(Element dateRow) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        StringBuilder dateString = new StringBuilder();
+        StringBuilder timeString = new StringBuilder();
+
+        StringBuilder dateTimeString = new StringBuilder();
+
+        // Building dateString
+        dateString.append(dateRow.select("span.year").text() + "-");
+        switch (dateRow.select("span.month").text()) {
+            case "janvier":
+                dateString.append("01-");
+                break;
+            case "février":
+                dateString.append("02-");
+                break;
+            case "mars":
+                dateString.append("03-");
+                break;
+            case "avril":
+                dateString.append("04-");
+                break;
+            case "mai":
+                dateString.append("05-");
+                break;
+            case "juin":
+                dateString.append("06-");
+                break;
+            case "juillet":
+                dateString.append("07-");
+                break;
+            case "août":
+                dateString.append("08-");
+                break;
+            case "septembre":
+                dateString.append("09-");
+                break;
+            case "octobre":
+                dateString.append("10-");
+                break;
+            case "novembre":
+                dateString.append("11-");
+                break;
+            case "décembre":
+                dateString.append("12-");
+                break;
+
+            default:
+                break;
+        }
+
+        if (dateRow.select("span.day-num").text().length() == 1) {
+            dateString.append("0" + dateRow.select("span.day-num").text());
+        } else {
+            dateString.append(dateRow.select("span.day-num").text());
+        }
+        // dateString done : YYYY-MM-DD
+
+        
+        dateTimeString.append(dateString);
+        Elements times = dateRow.select("div.concert-ctn > div.heure > span");
+        for (Element time : times) {
+            // System.out.println(time.text()); 
+            dateTimeString.append(" " + time.text());
+        }
+        System.out.println(dateTimeString);
+        return LocalDateTime.parse(dateString + " 01:01", formatter);
+
+    }
 }
+
+// doc.select("span[class='titre']").forEach(System.out::println);
+// System.out.println(doc.select("span[class='titre']").getFirst());
+// Elements dates = doc.select("div[class='row date-row']");
+// Elements concerts = dates.select("div.lieu");
+// System.out.println(concerts.text());
