@@ -1,0 +1,21 @@
+services:
+  PostgreSQL:
+    image: postgres:latest
+    container_name: event-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=B@nLgU4qz*9?D~3n83
+      - POSTGRES_DB=event
+    logging: # option de paramétrage des logs
+      options:
+        max-size: 10m # fichier de 10 Mo maximum
+        max-file: "3" # jusqu'à 3 fichiers de log
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./dump/:/docker-entrypoint-initdb.d/
