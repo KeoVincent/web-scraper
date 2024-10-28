@@ -248,12 +248,11 @@ public class ScraperService {
     // }
 
     // TODO implement getDateTime
-    public LocalDateTime getDateTime(Element dateRow) {
+    public LocalDateTime getDateTime(Element dateRow, Element concertRow) {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         StringBuilder dateString = new StringBuilder();
-        StringBuilder timeString = new StringBuilder();
 
         StringBuilder dateTimeString = new StringBuilder();
 
@@ -308,13 +307,17 @@ public class ScraperService {
         }
         // dateString done : YYYY-MM-DD
 
+
         dateTimeString.append(dateString);
-        Elements times = dateRow.select("div.concert-ctn > div.heure > span");
-        for (Element time : times) {
-            // System.out.println(time.text());
-            dateTimeString.append(" " + time.text());
-        }
-        System.out.println(dateTimeString);
+        Element time = concertRow.select("div.heure").getFirst();
+        
+        System.out.println((time.text().split("h"))[0]);
+
+        String[] splitTime = time.text().split("h");
+        // System.out.println(time.text());
+        dateTimeString.append(" " + splitTime[0] + ":" + splitTime[1]);
+
+        // System.out.println(dateTimeString);
         return LocalDateTime.parse(dateString + " 01:01", formatter);
 
     }
