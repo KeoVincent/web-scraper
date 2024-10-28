@@ -6,42 +6,125 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import org.jsoup.Connection;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
-import fr.afpa.web_scraper.HomeConnection;
 import fr.afpa.web_scraper.entities.Event;
+import fr.afpa.web_scraper.entities.Venue;
 import fr.afpa.web_scraper.repositories.EventRepository;
+import fr.afpa.web_scraper.repositories.VenueRepository;
 
 @Service
 public class ScraperService {
 
     private final EventRepository eventRepository;
+    private final VenueRepository venueRepository;
 
-    private Document doc = scrapAll();
+    private Document doc;
 
-    public ScraperService(EventRepository eventRepository) {
+    private static Connection connection;
+
+    public static String url = "http://www.tyzicos.com";
+
+    public static List<String> venuesUrls = new ArrayList<>();
+
+    public ScraperService(EventRepository eventRepository, VenueRepository venueRepository) {
         this.eventRepository = eventRepository;
-        // for (String date : getDateString()) {
-        // System.out.println(date);
+        this.venueRepository = venueRepository;
+
+        // for (String string : venuesUrls) {
+        //     System.out.println(string);
         // }
-        // System.out.println(getDateElements().getFirst());
-        getDateTime(getDateElements().getFirst());
+        // System.out.println(venuesUrls.toString());
+        for (String hallUrl : scrapHallUrls()) {          
+            createVenue(scrap(hallUrl), false);
+        }
 
     }
 
-    public Document scrapAll() {
-        Connection con = HomeConnection.getInstance();
+    public Venue createVenue(Document venuePage, boolean isFestival) {
+
+        // getting venue name
+        String venueName = venuePage.select("div.title").text();
+
+        // getting venue address span (contains phone too)
+        String venueAddressPhone = venuePage.select("div.adress > span").text();
+
+        // cutting phone from string
+        String venueAddress = venueAddressPhone.split("\\d{2}( \\d{2}){4}")[0];
+
+        // getting venue phone if present ; else set phone to null
+        String venuePhone = null;
+        Pattern phonePattern = Pattern.compile("\\d{2}( \\d{2}){4}");
+        Matcher phoneMatcher = phonePattern.matcher(venueAddressPhone);
+        if (phoneMatcher.find()) {
+            venuePhone = phoneMatcher.group(0);
+        }
+
+        // System.out.println(venueName + " " + venueAddress + " " + venuePhone);
+        
+        Venue venue = new Venue().setName(venueName).setAddress(venueAddress).setPhone(venuePhone).setFestival(isFestival);
+        List<Venue> dbVenues = (List) venueRepository.findAll();
+        if (dbVenues.size() > 0) {
+            boolean exists = false;
+            for (Venue dbVenue : dbVenues) {
+                if (venue.getName().equals(dbVenue.getName())) {
+                    exists = true;
+                    System.out.println("ALREADY EXISTS Venue " + venue.getName() + "  ; id = " + dbVenue.getId());
+                    return dbVenue;
+                }
+            }
+            if (!exists) {
+                venueRepository.save(venue);
+                System.out.println("SAVING Venue " + venue.getName() + "  ; id = " + venue.getId());
+                return venue;
+            }
+        } else {
+            System.out.println("here");
+            venueRepository.save(venue); 
+            // System.out.println(venue.getId());  
+        }
+
+        return venue;
+        
+    }
+
+    public List<String> scrapHallUrls() {
+        doc = scrap("/concerts-salles-bars/bretagne");
+        Elements venueElements = doc.select("a.un-salle-bar");
+        for (Element venueElement : venueElements) {
+
+            // System.out.println(venueElement.attr("href"));
+            venuesUrls.add(venueElement.attr("href"));
+        }
+        return venuesUrls;
+    }
+
+    public Document scrap(String localUrl) {
+        Connection con = Jsoup.connect(url + localUrl);
         try {
             return con.get();
         } catch (IOException e) {
             e.printStackTrace();
         }
         return doc;
+    }
+
+    public void getVenueLink() {
+        doc = scrap("/concerts-salles-bars/bretagne");
+        Elements links = doc.select("a.un-salle-bar");
+        // for (Element link : links) {
+        //     System.out.println(link.attr("href"));
+        // }
+        System.out.println(links.getFirst().attr("href"));
+
     }
 
     /**
@@ -150,18 +233,19 @@ public class ScraperService {
 
     // TODO implement getName
     // TODO implement getVenuId
-    public boolean createEvent() {
-        Elements dateRows = doc.select("div.date-row");
-        Elements eventRows = doc.select("div.concert-ctn");
-        for (Element dateRow : dateRows) {
-            for (Element eventRow : eventRows) {
-                eventRepository.save(new Event().setDateTime(getDateTime(dateRow)).setName(getName(eventRow))
-                        .setVenueId(getVenueId(venue)));
-            }
-        }
-        return true;
+    // public boolean createEvent() {
+    // Elements dateRows = doc.select("div.date-row");
+    // Elements eventRows = doc.select("div.concert-ctn");
+    // for (Element dateRow : dateRows) {
+    // for (Element eventRow : eventRows) {
+    // eventRepository.save(new
+    // Event().setDateTime(getDateTime(dateRow)).setName(getName(eventRow))
+    // .setVenueId(getVenueId(venue)));
+    // }
+    // }
+    // return true;
 
-    }
+    // }
 
     // TODO implement getDateTime
     public LocalDateTime getDateTime(Element dateRow) {
@@ -224,11 +308,10 @@ public class ScraperService {
         }
         // dateString done : YYYY-MM-DD
 
-        
         dateTimeString.append(dateString);
         Elements times = dateRow.select("div.concert-ctn > div.heure > span");
         for (Element time : times) {
-            // System.out.println(time.text()); 
+            // System.out.println(time.text());
             dateTimeString.append(" " + time.text());
         }
         System.out.println(dateTimeString);
