@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
@@ -21,7 +22,8 @@ public class Event {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
+    
+    @Column(columnDefinition = "TEXT")
     private String name;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -30,18 +32,18 @@ public class Event {
 
     @ManyToOne(targetEntity = Venue.class)
     @JoinColumn(name = "venue_id")
-    private UUID venueId;
+    private Venue venue;
 
     private int musicalStyleId;
 
     public Event() {
     }
 
-    public Event(UUID id, String name, LocalDateTime dateTime, UUID venueId, int musicalStyleId) {
+    public Event(UUID id, String name, LocalDateTime dateTime, Venue venue, int musicalStyleId) {
         this.id = id;
         this.name = name;
         this.dateTime = dateTime; 
-        this.venueId = venueId;
+        this.venue = venue;
         this.musicalStyleId = musicalStyleId;
     }
 
@@ -72,12 +74,12 @@ public class Event {
         return this;
     }
 
-    public UUID getVenueId() {
-        return venueId;
+    public Venue getVenue() {
+        return venue;
     }
 
-    public Event setVenueId(UUID venueId) {
-        this.venueId = venueId;
+    public Event setVenue(Venue venue) {
+        this.venue = venue;
         return this;
     }
 
@@ -90,6 +92,13 @@ public class Event {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "Event [id=" + id + ", name=" + name + ", dateTime=" + dateTime + ", venueId=" + venue
+                + ", musicalStyleId=" + musicalStyleId + "]";
+    }
+
+    
     
 
 }

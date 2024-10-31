@@ -15,21 +15,24 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.hateoas.mediatype.alps.Doc;
 
-import fr.afpa.web_scraper.services.ScraperService;
+import fr.afpa.web_scraper.services.ScraperServiceOld;
+import jakarta.annotation.PostConstruct;
 
 @SpringBootApplication
 public class WebScraperApplication {
 
-	@Autowired
-	private ScraperService scraper;
+	// @Autowired
+	// private ScraperService scraper;
+
+	@PostConstruct
+	public void init() {
+
+	}
 
 	public static void main(String[] args) {
-
+		
 		SpringApplication.run(WebScraperApplication.class, args);
 
-		// Event testEvent = new Event().setName("test");
-
-		// eventRepository.save(testEvent);
 		
 		
 	}
